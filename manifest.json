@@ -1,0 +1,24 @@
+{
+  "short_name": "EspañolIA",
+  "name": "Aprende Español con IA",
+  "description": "Tuteur d'espagnol interactif avec reconnaissance vocale et Gemini IA.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/197/197593.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/197/197593.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#4285f4",
+  "background_color": "#f0f2f5",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "fr-FR"
+}

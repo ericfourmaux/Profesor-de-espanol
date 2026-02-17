@@ -4,12 +4,12 @@
   "description": "Tuteur d'espagnol interactif avec reconnaissance vocale et Gemini IA.",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/197/197593.png",
+      "src": "icon.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/197/197593.png",
+      "src": "icon.png",
       "type": "image/png",
       "sizes": "512x512"
     }

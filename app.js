@@ -11,8 +11,6 @@ if (!GEMINI_API_KEY) {
     }
 }
 
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
 const btnRecord = document.getElementById('btn-record');
 const chatContainer = document.getElementById('chat-container');
 const statusDisplay = document.getElementById('status');
@@ -122,14 +120,21 @@ async function callGemini(text) {
     statusDisplay.innerText = "L'IA réfléchit...";
     history.push({ role: "user", parts: [{ text: text }] });
 
+    // Nouvelle URL basée sur Gemini 2.0 Flash
+    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                // On passe la clé ici comme suggéré par le guide curl
+                'x-goog-api-key': GEMINI_API_KEY 
+            },
             body: JSON.stringify({ contents: history })
         });
 
-        const data = await response.json(); // 'data' est défini ICI
+        const data = await response.json();
 
         if (data.candidates && data.candidates[0].content) {
             const aiReply = data.candidates[0].content.parts[0].text;
@@ -138,7 +143,7 @@ async function callGemini(text) {
             addMessage(aiReply, 'ai'); 
             speak(aiReply);
         } else if (data.error) {
-            console.error("Erreur API:", data.error.message);
+            console.error("Erreur détaillée:", data.error);
             statusDisplay.innerText = "Erreur : " + data.error.message;
         }
     } catch (error) {

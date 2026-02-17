@@ -1,6 +1,9 @@
 // Ne mets plus la clé ici !
 let GEMINI_API_KEY = localStorage.getItem('GEMINI_KEY');
 
+const apiKey = localStorage.getItem('GEMINI_KEY');
+console.log("API KEY: ", apiKey);
+
 if (!GEMINI_API_KEY) {
     GEMINI_API_KEY = prompt("Veuillez entrer votre clé API Google AI Studio pour commencer :");
     if (GEMINI_API_KEY) {
@@ -126,22 +129,52 @@ async function callGemini(text) {
             body: JSON.stringify({ contents: history })
         });
 
-        const data = await response.json();
-        
-        // Vérification de sécurité pour la réponse
+        const data = await response.json(); // 'data' est défini ICI
+
         if (data.candidates && data.candidates[0].content) {
             const aiReply = data.candidates[0].content.parts[0].text;
             history.push({ role: "model", parts: [{ text: aiReply }] });
             
             addMessage(aiReply, 'ai'); 
             speak(aiReply);
+        } else if (data.error) {
+            console.error("Erreur API:", data.error.message);
+            statusDisplay.innerText = "Erreur : " + data.error.message;
         }
-        statusDisplay.innerText = "";
     } catch (error) {
-        console.error(error);
+        console.error("Erreur réseau:", error);
         statusDisplay.innerText = "Erreur de connexion.";
+    } finally {
+        statusDisplay.innerText = "";
     }
 }
+// async function callGemini(text) {
+//     statusDisplay.innerText = "L'IA réfléchit...";
+//     history.push({ role: "user", parts: [{ text: text }] });
+
+//     try {
+//         const response = await fetch(API_URL, {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify({ contents: history })
+//         });
+
+//         const data = await response.json();
+        
+//         // Vérification de sécurité pour la réponse
+//         if (data.candidates && data.candidates[0].content) {
+//             const aiReply = data.candidates[0].content.parts[0].text;
+//             history.push({ role: "model", parts: [{ text: aiReply }] });
+            
+//             addMessage(aiReply, 'ai'); 
+//             speak(aiReply);
+//         }
+//         statusDisplay.innerText = "";
+//     } catch (error) {
+//         console.error(error);
+//         statusDisplay.innerText = "Erreur de connexion.";
+//     }
+// }
 
 // --- 5. SYNTHÈSE VOCALE ---
 function speak(text) {
@@ -184,17 +217,23 @@ btnReset.addEventListener('click', () => {
         chatContainer.innerHTML = '';
         window.speechSynthesis.cancel();
         
-        // Garder les instructions de tuteur mais vider la conversation
+        const welcomeText = "¡Entendido! He olvidado nuestra conversación. ¿De qué quieres hablar ahora?";
+
+        // Réinitialisation avec alternance correcte pour l'API
         history = [
             {
                 role: "user",
                 parts: [{ text: "Tu es un tuteur d'espagnol. On va avoir une conversation graduelle. 1. Réponds toujours en espagnol. 2. Si je fais une erreur, corrige-moi en français à la fin de ta réponse. 3. Pose-moi une question pour continuer. Garde des phrases courtes." }]
+            },
+            {
+                role: "model",
+                parts: [{ text: welcomeText }]
             }
         ];
 
-        const welcome = "¡Entendido! He olvidado nuestra conversación. ¿De qué quieres hablar ahora?";
-        addMessage(welcome, 'ai');
-        speak(welcome);
+        addMessage(welcomeText, 'ai');
+        speak(welcomeText);
+        statusDisplay.innerText = "Conversation réinitialisée.";
     }
 });
 

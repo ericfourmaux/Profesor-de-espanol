@@ -83,6 +83,7 @@ if (!SpeechRecognition) {
 
     recognition.onstart = () => {
         isRecording = true;
+        playFeedback('start');
         btnRecord.style.backgroundColor = "#34a853";
         btnRecord.classList.add('recording-pulse'); // Optionnel: effet visuel
         statusDisplay.innerText = "Écoute en cours... (Cliquez pour stopper)";
@@ -90,6 +91,7 @@ if (!SpeechRecognition) {
 
     recognition.onend = () => {
         isRecording = false;
+        playFeedback('start');
         btnRecord.style.backgroundColor = "#ea4335";
         statusDisplay.innerText = "";
     };
@@ -195,3 +197,36 @@ btnReset.addEventListener('click', () => {
         speak(welcome);
     }
 });
+
+// --- 7. JOUER UN SON À L'ÉCOUTE ---
+// Fonction pour générer un retour sonore ET tactile
+function playFeedback(type) {
+    // 1. Retour Haptique (Vibration)
+    if (navigator.vibrate) {
+        if (type === 'start') {
+            navigator.vibrate(40); // Une petite secousse brève de 40ms
+        } else {
+            navigator.vibrate([30, 50, 30]); // Deux petites secousses rapides
+        }
+    }
+
+    // 2. Retour Sonore (ton code précédent)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    if (type === 'start') {
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    } else {
+        oscillator.frequency.setValueAtTime(330, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    }
+
+    oscillator.type = 'sine';
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.1);
+}

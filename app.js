@@ -54,48 +54,53 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// --- 3. RECONNAISSANCE VOCALE ---
+// --- 3. RECONNAISSANCE VOCALE (VERSION PIXEL 9 / CHROME MOBILE) ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
 if (!SpeechRecognition) {
-    statusDisplay.innerText = "Micro non supporté sur ce navigateur.";
+    statusDisplay.innerText = "Micro non supporté (Utilisez Chrome)";
 } else {
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
+    recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.continuous = false; // Important sur mobile pour éviter les blocages
 
-    // Utilisation de 'touchstart' pour une réponse immédiate sur Pixel 9
-    btnRecord.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Empêche le menu contextuel
-        window.speechSynthesis.cancel(); // Coupe le prof s'il parle
-        try {
-            recognition.start();
-        } catch (err) {
-            console.log("Déjà en cours...");
+    let isRecording = false;
+
+    // Sur mobile, un clic simple "Toggle" est souvent plus fiable qu'un appui long
+    btnRecord.addEventListener('click', () => {
+        if (!isRecording) {
+            try {
+                window.speechSynthesis.cancel(); // Arrête l'IA qui parle
+                recognition.start();
+            } catch (e) {
+                console.error("Erreur Start:", e);
+            }
+        } else {
+            recognition.stop();
         }
     });
 
-    btnRecord.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        recognition.stop();
-    });
-
     recognition.onstart = () => {
+        isRecording = true;
         btnRecord.style.backgroundColor = "#34a853";
-        btnRecord.style.transform = "scale(0.9)";
-        statusDisplay.innerText = "Écoute active... Parlez maintenant";
+        btnRecord.classList.add('recording-pulse'); // Optionnel: effet visuel
+        statusDisplay.innerText = "Écoute en cours... (Cliquez pour stopper)";
     };
 
     recognition.onend = () => {
+        isRecording = false;
         btnRecord.style.backgroundColor = "#ea4335";
-        btnRecord.style.transform = "scale(1)";
         statusDisplay.innerText = "";
     };
 
     recognition.onerror = (event) => {
-        console.error("Erreur reconnaissance:", event.error);
-        statusDisplay.innerText = "Erreur micro : " + event.error;
-        btnRecord.style.backgroundColor = "#ea4335";
+        isRecording = false;
+        console.error("Erreur:", event.error);
+        if (event.error === 'not-allowed') {
+            alert("Merci d'autoriser le micro dans les paramètres de votre navigateur (cliquez sur le cadenas à côté de l'URL).");
+        }
+        statusDisplay.innerText = "Erreur: " + event.error;
     };
 
     recognition.onresult = async (event) => {
@@ -177,18 +182,16 @@ btnReset.addEventListener('click', () => {
         chatContainer.innerHTML = '';
         window.speechSynthesis.cancel();
         
-        // Reset historique
+        // Garder les instructions de tuteur mais vider la conversation
         history = [
-            { role: "user", parts: [{ text: "Tu es un tuteur d'espagnol... (ton prompt de base)" }] },
-            { role: "model", parts: [{ text: "¡Entendido! Empecemos de nuevo. ¿De qué quieres hablar?" }] }
+            {
+                role: "user",
+                parts: [{ text: "Tu es un tuteur d'espagnol. On va avoir une conversation graduelle. 1. Réponds toujours en espagnol. 2. Si je fais une erreur, corrige-moi en français à la fin de ta réponse. 3. Pose-moi une question pour continuer. Garde des phrases courtes." }]
+            }
         ];
 
-        // Change la voix aléatoirement pour le nouveau prof
-        const options = voiceSelect.options;
-        if (options.length > 0) {
-            voiceSelect.selectedIndex = Math.floor(Math.random() * options.length);
-        }
-
-        addMessage("¡Entendido! Empecemos de nouveau. ¿De qué quieres hablar?", 'ai');
+        const welcome = "¡Entendido! He olvidado nuestra conversación. ¿De qué quieres hablar ahora?";
+        addMessage(welcome, 'ai');
+        speak(welcome);
     }
 });

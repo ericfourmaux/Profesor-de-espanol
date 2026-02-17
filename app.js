@@ -56,33 +56,56 @@ loadVoices();
 
 // --- 3. RECONNAISSANCE VOCALE ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
-recognition.lang = 'es-ES';
-recognition.interimResults = false;
+if (!SpeechRecognition) {
+    statusDisplay.innerText = "Micro non supporté sur ce navigateur.";
+} else {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.continuous = false; // Important sur mobile pour éviter les blocages
 
-btnRecord.addEventListener('pointerdown', () => {
-    recognition.start();
-});
+    // Utilisation de 'touchstart' pour une réponse immédiate sur Pixel 9
+    btnRecord.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Empêche le menu contextuel
+        window.speechSynthesis.cancel(); // Coupe le prof s'il parle
+        try {
+            recognition.start();
+        } catch (err) {
+            console.log("Déjà en cours...");
+        }
+    });
 
-btnRecord.addEventListener('pointerup', () => {
-    recognition.stop();
-});
+    btnRecord.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        recognition.stop();
+    });
 
-recognition.onstart = () => {
-    btnRecord.style.backgroundColor = "#34a853";
-    statusDisplay.innerText = "Écoute active...";
-};
+    recognition.onstart = () => {
+        btnRecord.style.backgroundColor = "#34a853";
+        btnRecord.style.transform = "scale(0.9)";
+        statusDisplay.innerText = "Écoute active... Parlez maintenant";
+    };
 
-recognition.onend = () => {
-    btnRecord.style.backgroundColor = "#ea4335";
-    statusDisplay.innerText = "";
-};
+    recognition.onend = () => {
+        btnRecord.style.backgroundColor = "#ea4335";
+        btnRecord.style.transform = "scale(1)";
+        statusDisplay.innerText = "";
+    };
 
-recognition.onresult = async (event) => {
-    const userText = event.results[0][0].transcript;
-    addMessage(userText, 'user'); // Affiche ton texte
-    await callGemini(userText);   // Envoie à l'IA
-};
+    recognition.onerror = (event) => {
+        console.error("Erreur reconnaissance:", event.error);
+        statusDisplay.innerText = "Erreur micro : " + event.error;
+        btnRecord.style.backgroundColor = "#ea4335";
+    };
+
+    recognition.onresult = async (event) => {
+        const userText = event.results[0][0].transcript;
+        if (userText) {
+            addMessage(userText, 'user');
+            await callGemini(userText);
+        }
+    };
+}
 
 // --- 4. APPEL API GEMINI ---
 async function callGemini(text) {

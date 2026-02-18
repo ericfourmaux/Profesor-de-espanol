@@ -1,15 +1,15 @@
-// Ne mets plus la clé ici !
 let GEMINI_API_KEY = localStorage.getItem('GEMINI_KEY');
 
-const apiKey = localStorage.getItem('GEMINI_KEY');
-console.log("API KEY: ", apiKey);
-
-if (!GEMINI_API_KEY) {
+if (GEMINI_API_KEY === null) {
     GEMINI_API_KEY = prompt("Veuillez entrer votre clé API Google AI Studio pour commencer :");
     if (GEMINI_API_KEY) {
         localStorage.setItem('GEMINI_KEY', GEMINI_API_KEY);
     }
+} else {
+
 }
+
+const apiKey = localStorage.getItem('GEMINI_KEY');
 
 const btnRecord = document.getElementById('btn-record');
 const chatContainer = document.getElementById('chat-container');
@@ -17,6 +17,12 @@ const statusDisplay = document.getElementById('status');
 const btnReset = document.getElementById('btn-reset');
 const voiceSelect = document.getElementById('voice-select');
 const waveContainer = document.getElementById('wave-container');
+
+const rateSlider = document.getElementById('rate-slider');
+const pitchSlider = document.getElementById('pitch-slider');
+const rateVal = document.getElementById('rate-val');
+const pitchVal = document.getElementById('pitch-val');
+
 let voices = [];
 
 // --- 1. INITIALISATION & SERVICE WORKER ---
@@ -86,7 +92,7 @@ if (!SpeechRecognition) {
         isRecording = true;
         playFeedback('start');
         btnRecord.style.backgroundColor = "#34a853";
-        btnRecord.classList.add('recording-pulse'); // Optionnel: effet visuel
+        btnRecord.classList.add('recording-pulse');
         statusDisplay.innerText = "Écoute en cours... (Cliquez pour stopper)";
     };
 
@@ -120,7 +126,7 @@ async function callGemini(text) {
     statusDisplay.innerText = "L'IA réfléchit...";
     history.push({ role: "user", parts: [{ text: text }] });
 
-    // Nouvelle URL basée sur Gemini 2.0 Flash
+    // URL basée sur Gemini 2.0 Flash
     const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
     try {
@@ -128,7 +134,6 @@ async function callGemini(text) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // On passe la clé ici comme suggéré par le guide curl
                 'x-goog-api-key': GEMINI_API_KEY 
             },
             body: JSON.stringify({ contents: history })
@@ -153,38 +158,11 @@ async function callGemini(text) {
         statusDisplay.innerText = "";
     }
 }
-// async function callGemini(text) {
-//     statusDisplay.innerText = "L'IA réfléchit...";
-//     history.push({ role: "user", parts: [{ text: text }] });
-
-//     try {
-//         const response = await fetch(API_URL, {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify({ contents: history })
-//         });
-
-//         const data = await response.json();
-        
-//         // Vérification de sécurité pour la réponse
-//         if (data.candidates && data.candidates[0].content) {
-//             const aiReply = data.candidates[0].content.parts[0].text;
-//             history.push({ role: "model", parts: [{ text: aiReply }] });
-            
-//             addMessage(aiReply, 'ai'); 
-//             speak(aiReply);
-//         }
-//         statusDisplay.innerText = "";
-//     } catch (error) {
-//         console.error(error);
-//         statusDisplay.innerText = "Erreur de connexion.";
-//     }
-// }
 
 // --- 5. SYNTHÈSE VOCALE ---
 function speak(text) {
-    window.speechSynthesis.cancel(); // Stoppe une voix en cours
-    const cleanText = text.replace(/\((.*?)\)/g, ""); // Enlève les corrections pour l'audio
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/\((.*?)\)/g, "");
     const utterance = new SpeechSynthesisUtterance(cleanText);
     
     const selectedVoice = voices.find(v => v.name === voiceSelect.value);
@@ -194,9 +172,12 @@ function speak(text) {
         utterance.lang = 'es-ES';
     }
 
+    // --- PERSONNALISATION DYNAMIQUE ---
+    utterance.rate = rateSlider.value;
+    utterance.pitch = pitchSlider.value;
+    
     utterance.onstart = () => waveContainer.classList.remove('wave-hidden');
     utterance.onend = () => waveContainer.classList.add('wave-hidden');
-    utterance.rate = 0.9; 
     
     window.speechSynthesis.speak(utterance);
 }
@@ -241,6 +222,9 @@ btnReset.addEventListener('click', () => {
         statusDisplay.innerText = "Conversation réinitialisée.";
     }
 });
+
+rateSlider.oninput = () => rateVal.innerText = rateSlider.value;
+pitchSlider.oninput = () => pitchVal.innerText = pitchSlider.value;
 
 // --- 7. JOUER UN SON À L'ÉCOUTE ---
 // Fonction pour générer un retour sonore ET tactile

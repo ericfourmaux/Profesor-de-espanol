@@ -1,15 +1,14 @@
-let GEMINI_API_KEY = localStorage.getItem('GEMINI_KEY');
+let GROQ_API_KEY = localStorage.getItem('GEMINI_KEY');
 
-if (GEMINI_API_KEY === null) {
-    GEMINI_API_KEY = prompt("Veuillez entrer votre clé API Google AI Studio pour commencer :");
-    if (GEMINI_API_KEY) {
-        localStorage.setItem('GEMINI_KEY', GEMINI_API_KEY);
+if (!GROQ_API_KEY) {
+    GROQ_API_KEY = prompt("Veuillez entrer votre clé API Groq pour commencer :");
+    if (GROQ_API_KEY) {
+        localStorage.setItem('GEMINI_KEY', GROQ_API_KEY);
     }
-} else {
-
 }
 
 const apiKey = localStorage.getItem('GEMINI_KEY');
+console.log("API KEY: ", apiKey);
 
 const btnRecord = document.getElementById('btn-record');
 const chatContainer = document.getElementById('chat-container');
@@ -40,7 +39,7 @@ let history = [
         parts: [{ text: "Tu es un tuteur d'espagnol. On va avoir une conversation graduelle. 1. Réponds toujours en espagnol. 2. Si je fais une erreur, corrige-moi en français à la fin de ta réponse. 3. Pose-moi une question pour continuer. Garde des phrases courtes." }]
     },
     {
-        role: "model",
+        role: "assistant",
         parts: [{ text: "¡Entendido! Estoy listo. ¿Cómo te llamas et comment se passe ta journée ?" }]
     }
 ];
@@ -127,23 +126,29 @@ async function callGemini(text) {
     history.push({ role: "user", parts: [{ text: text }] });
 
     // URL basée sur Gemini 2.0 Flash
-    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-goog-api-key': GEMINI_API_KEY 
+                'Authorization': `Bearer ${GROQ_API_KEY}` // Format standard
             },
-            body: JSON.stringify({ contents: history })
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile", // Un modèle très puissant
+                messages: history.map(h => ({
+                    role: h.role === "model" ? "assistant" : h.role,
+                    content: h.parts[0].text
+                }))
+            })
         });
 
         const data = await response.json();
 
-        if (data.candidates && data.candidates[0].content) {
-            const aiReply = data.candidates[0].content.parts[0].text;
-            history.push({ role: "model", parts: [{ text: aiReply }] });
+        if (data.choices && data.choices[0].message) {
+            const aiReply = data.choices[0].message.content;
+            history.push({ role: "assistant", content: aiReply });
             
             addMessage(aiReply, 'ai'); 
             speak(aiReply);
@@ -162,8 +167,11 @@ async function callGemini(text) {
 // --- 5. SYNTHÈSE VOCALE ---
 function speak(text) {
     window.speechSynthesis.cancel();
-    const cleanText = text.replace(/\((.*?)\)/g, "");
-    const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    const parts = text.split(/(Corrección|Correction)/i);
+    const textToSpeak = parts[0].trim();
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     
     const selectedVoice = voices.find(v => v.name === voiceSelect.value);
     if (selectedVoice) {
@@ -188,8 +196,10 @@ function addMessage(text, side) {
     bubble.classList.add('bubble', side);
 
     if (side === 'ai') {
-        // Formate les (corrections) en petit italique
-        bubble.innerHTML = text.replace(/\((.*?)\)/g, '<br><small style="opacity:0.8; font-style:italic;">Correction : $1</small>');
+        // On remplace "Corrección :" ou "Correction :" par un bloc stylisé
+        const formattedText = text.replace(/(Corrección|Correction)\s*:/gi, '<span class="correction-block"><strong>Correction :</strong>');
+        // Si on a ouvert un span de correction, on le ferme à la fin
+        bubble.innerHTML = formattedText.includes('correction-block') ? formattedText + '</span>' : formattedText;
     } else {
         bubble.innerText = text;
     }

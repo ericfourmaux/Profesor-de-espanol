@@ -179,6 +179,16 @@
             -webkit-user-select: none;
         }
 
+        .correction-block {
+            display: block;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed #ccc;
+            color: #666;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
         .status { font-size: 0.85rem; color: #666; font-weight: 500; height: 1.2em; }
         
         small { font-size: 0.8rem; color: #888; }
@@ -207,7 +217,7 @@
         <select id="voice-select">
             <option value="">Cargando voces...</option>
         </select>
-        <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <div style="display: flex; gap: 10px; margin-top: 8px; color: white;">
             <div style="flex: 1;">
                 <small style="color:white">Vitesse: <span id="rate-val">0.9</span></small>
                 <input type="range" id="rate-slider" min="0.5" max="1.5" step="0.1" value="0.9" style="width: 100%;">

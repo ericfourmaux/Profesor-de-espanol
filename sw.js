@@ -16,8 +16,16 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// Cache pour hors-ligne
+// self.addEventListener('fetch', (event) => {
+//   event.respondWith(
+//     caches.match(event.request).then((res) => res || fetch(event.request))
+//   );
+// });
+
+// Privilégie le mode en ligne
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((res) => res || fetch(event.request))
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
